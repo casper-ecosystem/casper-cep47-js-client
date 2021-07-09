@@ -1,0 +1,26 @@
+{
+  "name": "cep47-ts-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "dotenv": "^10.0.0",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.0.0",
+    "tslint": "^5.12.1",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.3.3"
+  },
+  "dependencies": {
+    "casper-js-sdk": "../../casper-js-sdk",
+    "@ethersproject/bignumber": "^5.0.8"
+  }
+}
