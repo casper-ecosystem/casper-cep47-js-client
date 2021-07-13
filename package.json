@@ -20,7 +20,7 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "casper-js-sdk": "../../casper-js-sdk",
-    "@ethersproject/bignumber": "^5.0.8"
+    "@ethersproject/bignumber": "^5.0.8",
+    "casper-js-sdk": "^2.1.0"
   }
 }
