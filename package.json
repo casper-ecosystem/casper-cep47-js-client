@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsc --watch",
+    "prepublishOnly": "npm run build && npm run test",
     "build": "tsc",
     "test": "echo \"No test specified\" && exit 0"
   },
