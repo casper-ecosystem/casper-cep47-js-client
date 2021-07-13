@@ -1,10 +1,11 @@
 {
   "name": "casper-cep47-js-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsc --watch",
+    "prepublishOnly": "npm run build && npm run test",
     "build": "tsc",
     "test": "echo \"No test specified\" && exit 0"
   },
