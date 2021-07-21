@@ -39,7 +39,7 @@ export const getAccountInfo = async (
   nodeAddress: string,
   publicKey: CLPublicKey
 ) => {
-  let stateRootHash = await getStateRootHash(nodeAddress);
+  const stateRootHash = await getStateRootHash(nodeAddress);
   const client = new CasperServiceByJsonRPC(nodeAddress);
   const accountHash = publicKey.toAccountHashStr();
   const blockState = await client.getBlockState(stateRootHash, accountHash, []);
