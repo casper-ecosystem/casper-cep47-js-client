@@ -20,7 +20,11 @@ class CEP47Client {
   private contractHash: string;
   private contractPackageHash: string;
 
-  constructor(private nodeAddress: string, private chainName: string, private eventStreamAddress?: string) {}
+  constructor(
+    private nodeAddress: string,
+    private chainName: string,
+    private eventStreamAddress?: string
+  ) {}
 
   public async install(
     keys: Keys.AsymmetricKey,
@@ -54,10 +58,17 @@ class CEP47Client {
 
   public async setContractHash(hash: string) {
     const stateRootHash = await utils.getStateRootHash(this.nodeAddress);
-    const contractData = await utils.getContractData(this.nodeAddress, stateRootHash, hash)
+    const contractData = await utils.getContractData(
+      this.nodeAddress,
+      stateRootHash,
+      hash
+    );
     const { contractPackageHash } = contractData.Contract!;
     this.contractHash = hash;
-    this.contractPackageHash = contractPackageHash.replace("contract-package-wasm", "");
+    this.contractPackageHash = contractPackageHash.replace(
+      "contract-package-wasm",
+      ""
+    );
   }
 
   public async name(account: CLPublicKey) {
@@ -423,33 +434,56 @@ class CEP47Client {
     }
   }
 
-  public onEvent(eventNames: CEP47Events[], callback: (eventName: CEP47Events, result: any) => void): void {
+  public onEvent(
+    eventNames: CEP47Events[],
+    callback: (eventName: CEP47Events, result: any) => void
+  ): any {
     if (!this.eventStreamAddress) {
       throw Error("Please set eventStreamAddress before!");
     }
     const es = new EventStream(this.eventStreamAddress);
 
     es.subscribe(EventName.DeployProcessed, (value: any) => {
-      const { transforms } = value.body.DeployProcessed.execution_result.Success.effect;
+      const { transforms } =
+        value.body.DeployProcessed.execution_result.Success.effect;
 
       const cep47Events = transforms.reduce((acc: any, val: any) => {
-        if (val.transform.hasOwnProperty("WriteCLValue") && typeof val.transform.WriteCLValue.parsed === "object") {
-          const maybeCLValue = CLValueParsers.fromJSON(val.transform.WriteCLValue);
+        if (
+          val.transform.hasOwnProperty("WriteCLValue") &&
+          typeof val.transform.WriteCLValue.parsed === "object"
+        ) {
+          const maybeCLValue = CLValueParsers.fromJSON(
+            val.transform.WriteCLValue
+          );
           const clValue = maybeCLValue.unwrap();
           if (clValue && clValue instanceof CLMap) {
-            const hash = clValue.get(CLValueBuilder.string("contract_package_hash"));
+            const hash = clValue.get(
+              CLValueBuilder.string("contract_package_hash")
+            );
             const event = clValue.get(CLValueBuilder.string("event_type"));
-            if (hash && hash.value() === this.contractPackageHash && event && eventNames.includes(event.value())) {
+            if (
+              hash &&
+              hash.value() === this.contractPackageHash &&
+              event &&
+              eventNames.includes(event.value())
+            ) {
               acc = [...acc, { name: event.value(), clValue }];
             }
           }
-        };
+        }
         return acc;
       }, []);
 
       cep47Events.forEach((d: any) => callback(d.name, d.clValue));
     });
     es.start();
+
+    return {
+      stopListening: () => {
+        es.unsubscribe(EventName.DeployProcessed);
+        es.stop();
+      },
+    };
   }
 }
 
@@ -542,7 +576,6 @@ const contractSimpleGetter = async (
     contractHash,
     key
   );
-
 
   if (clValue && clValue.CLValue instanceof CLValue) {
     return clValue.CLValue!;
