@@ -444,6 +444,8 @@ class CEP47Client {
     const es = new EventStream(this.eventStreamAddress);
 
     es.subscribe(EventName.DeployProcessed, (value: any) => {
+      // TODO: add errors handling
+      if (!value.body.DeployProcessed.execution_result.Success) return;
       const { transforms } =
         value.body.DeployProcessed.execution_result.Success.effect;
 
