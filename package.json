@@ -22,6 +22,6 @@
   },
   "dependencies": {
     "@ethersproject/bignumber": "^5.0.8",
-    "casper-js-sdk": "/Users/janhoffmann/Work/casperlabs/casper-js-sdk"
+    "casper-js-sdk": "2.2.0"
   }
 }
