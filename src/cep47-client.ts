@@ -137,7 +137,15 @@ class CEP47Client {
       this.contractHash,
       [key]
     );
-    return fromCLMap(result.value());
+
+    const res: Array<[CLValue, CLValue]> = result.value();
+
+    const jsMap = new Map();
+
+    for (const [innerKey, value] of res) {
+      jsMap.set(innerKey.value(), value.value());
+    }
+    return jsMap;
   }
 
   public async pause(keys: Keys.AsymmetricKey, paymentAmount: string) {
@@ -212,6 +220,7 @@ class CEP47Client {
     const tokenId = id
       ? CLValueBuilder.option(Some(CLValueBuilder.string(id)))
       : CLValueBuilder.option(None, CLTypeBuilder.string());
+
     const runtimeArgs = RuntimeArgs.fromMap({
       recipient,
       token_id: tokenId,
@@ -253,7 +262,7 @@ class CEP47Client {
       count: CLValueBuilder.u256(count),
       recipient,
       token_ids: tokenIds,
-      token_meta: toCLMap(meta)
+      token_meta: toCLMap(meta),
     });
 
     const deployHash = await contractCall({
@@ -280,8 +289,11 @@ class CEP47Client {
     ids: string[] | null,
     paymentAmount: string
   ) {
+    console.log(meta);
     if (ids && ids.length !== meta.length) {
-      throw new Error(`Ids length (${ids.length}) not equal to meta length (${meta.length})!`);
+      throw new Error(
+        `Ids length (${ids.length}) not equal to meta length (${meta.length})!`
+      );
     }
     const clMetas = meta.map(toCLMap);
     const tokenIds = ids
@@ -320,7 +332,7 @@ class CEP47Client {
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
       token_id: CLValueBuilder.string(tokenId),
-      token_meta: toCLMap(meta)
+      token_meta: toCLMap(meta),
     });
 
     const deployHash = await contractCall({
@@ -562,7 +574,10 @@ const installWasmFile = async ({
 
   // Set contract installation deploy (unsigned).
   let deploy = DeployUtil.makeDeploy(
-    new DeployUtil.DeployParams(keys.publicKey, chainName),
+    new DeployUtil.DeployParams(
+      CLPublicKey.fromHex(keys.publicKey.toHex()),
+      chainName
+    ),
     DeployUtil.ExecutableDeployItem.newModuleBytes(
       utils.getBinary(pathToContract),
       runtimeArgs
