@@ -13,6 +13,7 @@ import {
   Keys,
   RuntimeArgs,
 } from "casper-js-sdk";
+import { Some, None } from "ts-results";
 import { CEP47Events } from "./constants";
 import * as utils from "./utils";
 
@@ -136,7 +137,15 @@ class CEP47Client {
       this.contractHash,
       [key]
     );
-    return fromCLMap(result.value());
+
+    const res: Array<[CLValue, CLValue]> = result.value();
+
+    const jsMap = new Map();
+
+    for (const [innerKey, value] of res) {
+      jsMap.set(innerKey.value(), value.value());
+    }
+    return jsMap;
   }
 
   public async pause(keys: Keys.AsymmetricKey, paymentAmount: string) {
@@ -204,11 +213,17 @@ class CEP47Client {
   public async mintOne(
     keys: Keys.AsymmetricKey,
     recipient: CLPublicKey,
+    id: string | null,
     meta: Map<string, string>,
     paymentAmount: string
   ) {
+    const tokenId = id
+      ? CLValueBuilder.option(Some(CLValueBuilder.string(id)))
+      : CLValueBuilder.option(None, CLTypeBuilder.string());
+
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient: recipient,
+      recipient,
+      token_id: tokenId,
       token_meta: toCLMap(meta),
     });
 
@@ -233,13 +248,21 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     recipient: CLPublicKey,
     meta: Map<string, string>,
+    ids: string[] | null,
     count: number,
     paymentAmount: string
   ) {
+    const tokenIds = ids
+      ? CLValueBuilder.option(
+          Some(CLValueBuilder.list(ids.map((id) => CLValueBuilder.string(id))))
+        )
+      : CLValueBuilder.option(None, CLTypeBuilder.list(CLTypeBuilder.string()));
+
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient: recipient,
-      token_meta: toCLMap(meta),
       count: CLValueBuilder.u256(count),
+      recipient,
+      token_ids: tokenIds,
+      token_meta: toCLMap(meta),
     });
 
     const deployHash = await contractCall({
@@ -263,11 +286,23 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     recipient: CLPublicKey,
     meta: Array<Map<string, string>>,
+    ids: string[] | null,
     paymentAmount: string
   ) {
+    if (ids && ids.length !== meta.length) {
+      throw new Error(
+        `Ids length (${ids.length}) not equal to meta length (${meta.length})!`
+      );
+    }
     const clMetas = meta.map(toCLMap);
+    const tokenIds = ids
+      ? CLValueBuilder.option(
+          Some(CLValueBuilder.list(ids.map((id) => CLValueBuilder.string(id))))
+        )
+      : CLValueBuilder.option(None, CLTypeBuilder.list(CLTypeBuilder.string()));
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient: recipient,
+      recipient,
+      token_ids: tokenIds,
       token_metas: CLValueBuilder.list(clMetas),
     });
 
@@ -278,6 +313,34 @@ class CEP47Client {
       paymentAmount,
       nodeAddress: this.nodeAddress,
       keys: keys,
+      runtimeArgs,
+    });
+
+    if (deployHash !== null) {
+      return deployHash;
+    } else {
+      throw Error("Invalid Deploy");
+    }
+  }
+
+  public async updateTokenMetadata(
+    keys: Keys.AsymmetricKey,
+    tokenId: string,
+    meta: Map<string, string>,
+    paymentAmount: string
+  ) {
+    const runtimeArgs = RuntimeArgs.fromMap({
+      token_id: CLValueBuilder.string(tokenId),
+      token_meta: toCLMap(meta),
+    });
+
+    const deployHash = await contractCall({
+      chainName: this.chainName,
+      contractHash: this.contractHash,
+      entryPoint: "update_token_metadata",
+      keys,
+      nodeAddress: this.nodeAddress,
+      paymentAmount,
       runtimeArgs,
     });
 
@@ -510,7 +573,10 @@ const installWasmFile = async ({
 
   // Set contract installation deploy (unsigned).
   let deploy = DeployUtil.makeDeploy(
-    new DeployUtil.DeployParams(keys.publicKey, chainName),
+    new DeployUtil.DeployParams(
+      CLPublicKey.fromHex(keys.publicKey.toHex()),
+      chainName
+    ),
     DeployUtil.ExecutableDeployItem.newModuleBytes(
       utils.getBinary(pathToContract),
       runtimeArgs
