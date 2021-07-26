@@ -289,7 +289,6 @@ class CEP47Client {
     ids: string[] | null,
     paymentAmount: string
   ) {
-    console.log(meta);
     if (ids && ids.length !== meta.length) {
       throw new Error(
         `Ids length (${ids.length}) not equal to meta length (${meta.length})!`
