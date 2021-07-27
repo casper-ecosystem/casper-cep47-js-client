@@ -90,13 +90,20 @@ class CEP47Client {
     return result.value();
   }
 
-  public async meta(account: CLPublicKey) {
+  public async meta() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
       ["meta"]
     );
-    return result.value();
+    const res: Array<[CLValue, CLValue]> = result.value();
+
+    const jsMap = new Map();
+
+    for (const [innerKey, value] of res) {
+      jsMap.set(innerKey.value(), value.value());
+    }
+    return jsMap;
   }
 
   public async balanceOf(account: CLPublicKey) {
@@ -108,7 +115,7 @@ class CEP47Client {
       this.contractHash,
       [key]
     );
-    return fromCLMap(result.value());
+    return result.value();
   }
 
   public async getOwnerOf(tokenId: string) {
@@ -127,7 +134,7 @@ class CEP47Client {
       this.contractHash,
       ["total_supply"]
     );
-    return result.value().toString();
+    return result.value();
   }
 
   public async getTokenMeta(tokenId: string) {
