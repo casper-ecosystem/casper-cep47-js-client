@@ -1,6 +1,8 @@
 import {
   CasperClient,
   CLPublicKey,
+  CLAccountHash,
+  CLKey,
   CLString,
   CLTypeBuilder,
   CLValue,
@@ -72,7 +74,7 @@ class CEP47Client {
     );
   }
 
-  public async name(account: CLPublicKey) {
+  public async name() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
@@ -81,7 +83,7 @@ class CEP47Client {
     return result.value();
   }
 
-  public async symbol(account: CLPublicKey) {
+  public async symbol() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
@@ -90,7 +92,7 @@ class CEP47Client {
     return result.value();
   }
 
-  public async meta(account: CLPublicKey) {
+  public async meta() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
@@ -99,6 +101,7 @@ class CEP47Client {
     return result.value();
   }
 
+  // TODO: Refactor to use dictionary
   public async balanceOf(account: CLPublicKey) {
     const key = `balances_${Buffer.from(account.toAccountHash()).toString(
       "hex"
@@ -111,6 +114,7 @@ class CEP47Client {
     return fromCLMap(result.value());
   }
 
+  // TODO: Refactor to use dictionary
   public async getOwnerOf(tokenId: string) {
     const key = `owners_${tokenId}`;
     const result = await contractSimpleGetter(
@@ -130,6 +134,7 @@ class CEP47Client {
     return result.value().toString();
   }
 
+  // TODO: Refactor to use dictionary
   public async getTokenMeta(tokenId: string) {
     const key = `metas_${tokenId}`;
     const result = await contractSimpleGetter(
@@ -148,6 +153,7 @@ class CEP47Client {
     return jsMap;
   }
 
+  // TODO: ???
   public async pause(keys: Keys.AsymmetricKey, paymentAmount: string) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
@@ -168,6 +174,7 @@ class CEP47Client {
     }
   }
 
+  // TODO: ???
   public async unpause(keys: Keys.AsymmetricKey, paymentAmount: string) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
@@ -188,7 +195,7 @@ class CEP47Client {
     }
   }
 
-  // Error: state query failed: ValueNotFound
+  // TODO: Error: state query failed: ValueNotFound
   public async isPaused() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
@@ -198,6 +205,7 @@ class CEP47Client {
     return result.value();
   }
 
+  // TODO: Refactor to use dictionary
   public async getTokensOf(account: CLPublicKey) {
     const key = `tokens_${Buffer.from(account.toAccountHash()).toString(
       "hex"
@@ -222,7 +230,7 @@ class CEP47Client {
       : CLValueBuilder.option(None, CLTypeBuilder.string());
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient,
+      recipient: CLValueBuilder.key(new CLAccountHash(recipient.toAccountHash())),
       token_id: tokenId,
       token_meta: toCLMap(meta),
     });

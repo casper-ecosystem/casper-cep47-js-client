@@ -54,7 +54,31 @@ const test = async () => {
   console.log(`... Contract Hash: ${contractHash}`);
 
   // We don't need hash- prefix so i'm removing it
-  cep47.setContractHash(contractHash.slice(5));
+  await cep47.setContractHash(contractHash.slice(5));
+
+  const name = await cep47.name();
+  console.log(`... Contract name: ${name}`);
+
+  const symbol = await cep47.symbol();
+  console.log(`... Contract symbol: ${symbol}`);
+
+  const meta = await cep47.meta();
+  console.log(`... Contract meta: ${JSON.stringify(meta)}`);
+
+  // const balanceOf = await cep47.balanceOf(KEYS.publicKey);
+  // console.log(`... Contract meta: ${balanceOf}`);
+
+  let totalSupply = await cep47.totalSupply();
+  console.log(`... Total supply: ${totalSupply}`);
+
+  const mintHash = await cep47.mintOne(
+    KEYS,
+    KEYS.publicKey,
+    null,
+    new Map([['name', 'jan']]),
+    MINT_ONE_PAYMENT_AMOUNT!
+  );
+  console.log('... Mint hash: ', mintHash);
 
 };
 
