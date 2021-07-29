@@ -51,7 +51,7 @@ const test = async () => {
 
   await getDeploy(NODE_ADDRESS!, installDeployHash);
 
-  console.log(`... Contract installed, install deploy`);
+  console.log(`... Contract installed successfully.`);
 
   let accountInfo = await utils.getAccountInfo(NODE_ADDRESS!, KEYS.publicKey);
 
