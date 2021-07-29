@@ -21,7 +21,6 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "@ethersproject/bignumber": "^5.0.8",
     "casper-js-sdk": "2.2.3",
     "ts-results": "^3.3.0"
   }

@@ -56,6 +56,7 @@ export const getAccountNamedKeyValue = (accountInfo: any, namedKey: string) => {
   if (found) {
     return found.key;
   }
+  return undefined;
 };
 
 export const getContractData = async (
