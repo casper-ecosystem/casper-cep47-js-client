@@ -110,7 +110,14 @@ class CEP47Client {
       this.contractHash,
       ["meta"]
     );
-    return result.value();
+    const res: Array<[CLValue, CLValue]> = result.value();
+
+    const jsMap = new Map();
+
+    for (const [innerKey, value] of res) {
+      jsMap.set(innerKey.value(), value.value());
+    }
+    return jsMap;
   }
 
   public async balanceOf(account: CLPublicKey) {
@@ -132,7 +139,7 @@ class CEP47Client {
       this.contractHash,
       ["total_supply"]
     );
-    return result.value().toString();
+    return result.value();
   }
 
   // TODO: Refactor to use dictionary
