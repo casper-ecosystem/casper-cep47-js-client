@@ -87,23 +87,23 @@ const test = async () => {
   let totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
 
-//   const mintManyDeployHash = await cep47.mintMany(
-//     KEYS,
-//     KEYS.publicKey,
-//     [
-//       new Map([["name", "one"]]),
-//       new Map([["name", "two"]]),
-//       new Map([["name", "three"]]),
-//       new Map([["name", "four"]]),
-//       new Map([["name", "five"]]),
-//     ],
-//     null,
-//     MINT_COPIES_PAYMENT_AMOUNT!
-//   );
-//   console.log("... Mint Many deploy hash: ", mintManyDeployHash);
+  const mintManyDeployHash = await cep47.mintMany(
+    KEYS,
+    KEYS.publicKey,
+    [
+      new Map([["name", "one"]]),
+      new Map([["name", "two"]]),
+      new Map([["name", "three"]]),
+      new Map([["name", "four"]]),
+      new Map([["name", "five"]]),
+    ],
+    null,
+    MINT_COPIES_PAYMENT_AMOUNT!
+  );
+  console.log("... Mint Many deploy hash: ", mintManyDeployHash);
 
-//   await getDeploy(NODE_ADDRESS!, mintManyDeployHash);
-//   console.log("... Many tokens minted successfully");
+  await getDeploy(NODE_ADDRESS!, mintManyDeployHash);
+  console.log("... Many tokens minted successfully");
 
   totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
