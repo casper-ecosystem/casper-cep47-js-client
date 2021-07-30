@@ -1,5 +1,25 @@
-import { CasperServiceByJsonRPC, Keys, CLPublicKey } from "casper-js-sdk";
+import {
+  CasperServiceByJsonRPC,
+  CLValue,
+  CLKey,
+  CLAccountHash,
+  Keys,
+  CLPublicKey,
+} from "casper-js-sdk";
 import fs from "fs";
+
+import { RecipientType } from "./types";
+
+export const camelCased = (myString: string) =>
+  myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+
+export const createRecipientAddress = (recipient: RecipientType): CLKey => {
+  if (recipient instanceof CLPublicKey) {
+    return new CLKey(new CLAccountHash(recipient.toAccountHash()));
+  } else {
+    return new CLKey(recipient);
+  }
+};
 
 /**
  * Returns an ECC key pair mapped to an NCTL faucet account.
@@ -74,10 +94,32 @@ export const getContractData = async (
   return blockState;
 };
 
+export const contractDictionaryGetter = async (
+  nodeAddress: string,
+  dictionaryItemKey: string,
+  seedUref: string,
+) => {
+  const stateRootHash = await getStateRootHash(nodeAddress);
+
+  const client = new CasperServiceByJsonRPC(nodeAddress);
+
+  const storedValue = await client.getDictionaryItemByURef(
+    stateRootHash,
+    dictionaryItemKey,
+    seedUref
+  );
+
+  if (storedValue && storedValue.CLValue instanceof CLValue) {
+    return storedValue.CLValue!;
+  } else {
+    throw Error("Invalid stored value");
+  }
+};
+
+
 export const contractHashToByteArray = (contractHash: string) =>
   Uint8Array.from(Buffer.from(contractHash, "hex"));
 
-
 export const sleep = (num: number) => {
-  return new Promise(resolve => setTimeout(resolve, num));
-}
+  return new Promise((resolve) => setTimeout(resolve, num));
+};

@@ -15,7 +15,7 @@ const {
   EVENT_STREAM_ADDRESS,
   CHAIN_NAME,
   WASM_PATH,
-  KEY_PAIR_PATH,
+  MASTER_KEY_PAIR_PATH,
   TOKEN_NAME,
   TOKEN_SYMBOL,
   CONTRACT_HASH,
@@ -33,8 +33,8 @@ const {
 const TOKEN_META = new Map(parseTokenMeta(process.env.TOKEN_META!));
 
 const KEYS = Keys.Ed25519.parseKeyFiles(
-  `${KEY_PAIR_PATH}/public_key.pem`,
-  `${KEY_PAIR_PATH}/secret_key.pem`
+  `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
+  `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
 );
 
 const test = async () => {
