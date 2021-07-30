@@ -1,6 +1,9 @@
 import {
   CasperClient,
   CLPublicKey,
+  CLAccountHash,
+  CLByteArray,
+  CLKey,
   CLString,
   CLTypeBuilder,
   CLValue,
@@ -16,10 +19,12 @@ import {
 import { Some, None } from "ts-results";
 import { CEP47Events } from "./constants";
 import * as utils from "./utils";
+import { RecipientType } from "./types"
 
 class CEP47Client {
   private contractHash: string;
   private contractPackageHash: string;
+  private namedKeys: { balances: string, metadata: string, ownedTokens: string, owners: string, paused: string }
 
   constructor(
     private nodeAddress: string,
@@ -64,15 +69,24 @@ class CEP47Client {
       stateRootHash,
       hash
     );
-    const { contractPackageHash } = contractData.Contract!;
+
+    const { contractPackageHash, namedKeys } = contractData.Contract!;
     this.contractHash = hash;
     this.contractPackageHash = contractPackageHash.replace(
       "contract-package-wasm",
       ""
     );
+    const LIST_OF_NAMED_KEYS = ['balances', 'metadata', 'owned_tokens', 'owners', 'paused'];
+    // @ts-ignore
+    this.namedKeys = namedKeys.reduce((acc, val) => {
+      if (LIST_OF_NAMED_KEYS.includes(val.name)) {
+        return { ...acc, [utils.camelCased(val.name)]: val.key};
+      }
+      return acc;
+    }, {});
   }
 
-  public async name(account: CLPublicKey) {
+  public async name() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
@@ -81,7 +95,7 @@ class CEP47Client {
     return result.value();
   }
 
-  public async symbol(account: CLPublicKey) {
+  public async symbol() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
       this.contractHash,
@@ -107,25 +121,16 @@ class CEP47Client {
   }
 
   public async balanceOf(account: CLPublicKey) {
-    const key = `balances_${Buffer.from(account.toAccountHash()).toString(
-      "hex"
-    )}`;
-    const result = await contractSimpleGetter(
-      this.nodeAddress,
-      this.contractHash,
-      [key]
-    );
-    return result.value();
+    const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
+    const result = await utils.contractDictionaryGetter(this.nodeAddress, accountHash, this.namedKeys.balances);
+    const maybeValue = result.value().unwrap();
+    return maybeValue.value().toString();
   }
 
   public async getOwnerOf(tokenId: string) {
-    const key = `owners_${tokenId}`;
-    const result = await contractSimpleGetter(
-      this.nodeAddress,
-      this.contractHash,
-      [key]
-    );
-    return (result as CLPublicKey).toHex();
+    const result = await utils.contractDictionaryGetter(this.nodeAddress, tokenId, this.namedKeys.owners);
+    const maybeValue = result.value().unwrap();
+    return `account-hash-${Buffer.from(maybeValue.value().value()).toString("hex")}`;
   }
 
   public async totalSupply() {
@@ -137,24 +142,22 @@ class CEP47Client {
     return result.value();
   }
 
+  // TODO: Refactor to use dictionary
   public async getTokenMeta(tokenId: string) {
-    const key = `metas_${tokenId}`;
-    const result = await contractSimpleGetter(
-      this.nodeAddress,
-      this.contractHash,
-      [key]
-    );
-
-    const res: Array<[CLValue, CLValue]> = result.value();
+    const result = await utils.contractDictionaryGetter(this.nodeAddress, tokenId, this.namedKeys.metadata);
+    const maybeValue = result.value().unwrap();
+    const map: Array<[CLValue, CLValue]> = maybeValue.value();
 
     const jsMap = new Map();
 
-    for (const [innerKey, value] of res) {
+    for (const [innerKey, value] of map) {
       jsMap.set(innerKey.value(), value.value());
     }
+
     return jsMap;
   }
 
+  // TODO: ???
   public async pause(keys: Keys.AsymmetricKey, paymentAmount: string) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
@@ -175,6 +178,7 @@ class CEP47Client {
     }
   }
 
+  // TODO: ???
   public async unpause(keys: Keys.AsymmetricKey, paymentAmount: string) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
@@ -195,7 +199,7 @@ class CEP47Client {
     }
   }
 
-  // Error: state query failed: ValueNotFound
+  // TODO: Error: state query failed: ValueNotFound
   public async isPaused() {
     const result = await contractSimpleGetter(
       this.nodeAddress,
@@ -206,20 +210,15 @@ class CEP47Client {
   }
 
   public async getTokensOf(account: CLPublicKey) {
-    const key = `tokens_${Buffer.from(account.toAccountHash()).toString(
-      "hex"
-    )}`;
-    const result = await contractSimpleGetter(
-      this.nodeAddress,
-      this.contractHash,
-      [key]
-    );
-    return result.value();
+    const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
+    const result = await utils.contractDictionaryGetter(this.nodeAddress, accountHash, this.namedKeys.ownedTokens);
+    const maybeValue = result.value().unwrap();
+    return maybeValue.value();
   }
 
   public async mintOne(
     keys: Keys.AsymmetricKey,
-    recipient: CLPublicKey,
+    recipient: RecipientType,
     id: string | null,
     meta: Map<string, string>,
     paymentAmount: string
@@ -229,7 +228,7 @@ class CEP47Client {
       : CLValueBuilder.option(None, CLTypeBuilder.string());
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient,
+      recipient: utils.createRecipientAddress(recipient),
       token_id: tokenId,
       token_meta: toCLMap(meta),
     });
@@ -253,7 +252,7 @@ class CEP47Client {
 
   public async mintCopies(
     keys: Keys.AsymmetricKey,
-    recipient: CLPublicKey,
+    recipient: RecipientType,
     meta: Map<string, string>,
     ids: string[] | null,
     count: number,
@@ -266,11 +265,13 @@ class CEP47Client {
       : CLValueBuilder.option(None, CLTypeBuilder.list(CLTypeBuilder.string()));
 
     const runtimeArgs = RuntimeArgs.fromMap({
-      count: CLValueBuilder.u256(count),
-      recipient,
+      count: CLValueBuilder.u32(count),
+      recipient: utils.createRecipientAddress(recipient),
       token_ids: tokenIds,
       token_meta: toCLMap(meta),
     });
+
+    console.log(runtimeArgs);
 
     const deployHash = await contractCall({
       chainName: this.chainName,
@@ -291,7 +292,7 @@ class CEP47Client {
 
   public async mintMany(
     keys: Keys.AsymmetricKey,
-    recipient: CLPublicKey,
+    recipient: RecipientType,
     meta: Array<Map<string, string>>,
     ids: string[] | null,
     paymentAmount: string
@@ -301,14 +302,17 @@ class CEP47Client {
         `Ids length (${ids.length}) not equal to meta length (${meta.length})!`
       );
     }
+
     const clMetas = meta.map(toCLMap);
+
     const tokenIds = ids
       ? CLValueBuilder.option(
           Some(CLValueBuilder.list(ids.map((id) => CLValueBuilder.string(id))))
         )
       : CLValueBuilder.option(None, CLTypeBuilder.list(CLTypeBuilder.string()));
+
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient,
+      recipient: utils.createRecipientAddress(recipient),
       token_ids: tokenIds,
       token_metas: CLValueBuilder.list(clMetas),
     });
@@ -360,12 +364,12 @@ class CEP47Client {
 
   public async burnOne(
     keys: Keys.AsymmetricKey,
-    owner: CLPublicKey,
+    owner: RecipientType,
     tokenId: string,
     paymentAmount: string
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      owner,
+      owner: utils.createRecipientAddress(owner),
       token_id: CLValueBuilder.string(tokenId),
     });
 
@@ -388,13 +392,13 @@ class CEP47Client {
 
   public async burnMany(
     keys: Keys.AsymmetricKey,
-    owner: CLPublicKey,
+    owner: RecipientType,
     tokenIds: string[],
     paymentAmount: string
   ) {
     const clTokenIds = tokenIds.map(CLValueBuilder.string);
     const runtimeArgs = RuntimeArgs.fromMap({
-      owner,
+      owner: utils.createRecipientAddress(owner),
       token_ids: CLValueBuilder.list(clTokenIds),
     });
 
@@ -417,14 +421,12 @@ class CEP47Client {
 
   public async transferToken(
     keys: Keys.AsymmetricKey,
-    sender: CLPublicKey,
-    recipient: CLPublicKey,
+    recipient: RecipientType,
     tokenId: string,
     paymentAmount: string
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient,
-      sender,
+      recipient: utils.createRecipientAddress(recipient),
       token_id: CLValueBuilder.string(tokenId),
     });
 
@@ -447,15 +449,13 @@ class CEP47Client {
 
   public async transferManyTokens(
     keys: Keys.AsymmetricKey,
-    sender: CLPublicKey,
-    recipient: CLPublicKey,
+    recipient: RecipientType,
     tokenIds: string[],
     paymentAmount: string
   ) {
     const clTokenIds = tokenIds.map(CLValueBuilder.string);
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient,
-      sender,
+      recipient: utils.createRecipientAddress(recipient),
       token_ids: CLValueBuilder.list(clTokenIds),
     });
 
@@ -478,13 +478,11 @@ class CEP47Client {
 
   public async transferAllTokens(
     keys: Keys.AsymmetricKey,
-    sender: CLPublicKey,
-    recipient: CLPublicKey,
+    recipient: RecipientType,
     paymentAmount: string
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
-      recipient,
-      sender,
+      recipient: utils.createRecipientAddress(recipient),
     });
 
     const deployHash = await contractCall({
@@ -522,7 +520,8 @@ class CEP47Client {
       const cep47Events = transforms.reduce((acc: any, val: any) => {
         if (
           val.transform.hasOwnProperty("WriteCLValue") &&
-          typeof val.transform.WriteCLValue.parsed === "object"
+          typeof val.transform.WriteCLValue.parsed === "object" &&
+          val.transform.WriteCLValue.parsed !== null
         ) {
           const maybeCLValue = CLValueParsers.fromJSON(
             val.transform.WriteCLValue
