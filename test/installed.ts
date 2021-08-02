@@ -50,7 +50,6 @@ const test = async () => {
 
   const listener = cep47.onEvent(
     [
-      CEP47Events.Error,
       CEP47Events.MintOne,
       CEP47Events.TransferToken,
       CEP47Events.BurnOne,
