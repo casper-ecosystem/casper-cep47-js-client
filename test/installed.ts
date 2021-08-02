@@ -50,12 +50,20 @@ const test = async () => {
 
   const listener = cep47.onEvent(
     [
-      CEP47Events.Mint,
+      CEP47Events.MintOne,
       CEP47Events.TransferToken,
       CEP47Events.BurnOne,
       CEP47Events.MetadataUpdate,
     ],
-    (eventName, result) => console.log("+++", eventName, result)
+    (eventName, deploy, result) => {
+      if (deploy.success) {
+        console.log(`Successfull deploy of: ${eventName}, deployHash: ${deploy.deployHash}`);
+        console.log(result.value());
+      } else {
+        console.log(`Failed deploy of ${eventName}, deployHash: ${deploy.deployHash}`);
+        console.log(`Error: ${deploy.error}`);
+      }
+    }
   );
 
   await sleep(5 * 1000);
@@ -85,6 +93,21 @@ const test = async () => {
   console.log(`... Contract meta: ${JSON.stringify(meta)}`);
 
   let totalSupply = await cep47.totalSupply();
+  console.log(`... Total supply: ${totalSupply}`);
+
+  const mintDeployHash = await cep47.mintOne(
+    KEYS,
+    KEYS.publicKey,
+    null,
+    new Map([["name", "jan"]]),
+    MINT_ONE_PAYMENT_AMOUNT!
+  );
+  console.log("... Mint deploy hash: ", mintDeployHash);
+
+  await getDeploy(NODE_ADDRESS!, mintDeployHash);
+  console.log("... Token minted successfully");
+
+  totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
 
   const mintManyDeployHash = await cep47.mintMany(
@@ -190,21 +213,6 @@ const test = async () => {
   console.log("... Burn many deploy hash: ", burnManyTokensDeployHash);
   await getDeploy(NODE_ADDRESS!, burnManyTokensDeployHash);
   console.log("... Many tokens burnt successfully");
-
-  totalSupply = await cep47.totalSupply();
-  console.log(`... Total supply: ${totalSupply}`);
-
-  const mintDeployHash = await cep47.mintOne(
-    KEYS,
-    KEYS.publicKey,
-    null,
-    new Map([["name", "jan"]]),
-    MINT_ONE_PAYMENT_AMOUNT!
-  );
-  console.log("... Mint deploy hash: ", mintDeployHash);
-
-  await getDeploy(NODE_ADDRESS!, mintDeployHash);
-  console.log("... Token minted successfully");
 
   totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);

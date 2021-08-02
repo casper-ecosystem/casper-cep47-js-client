@@ -19,12 +19,20 @@ import {
 import { Some, None } from "ts-results";
 import { CEP47Events } from "./constants";
 import * as utils from "./utils";
-import { RecipientType } from "./types"
+import { RecipientType, IPendingDeploy } from "./types";
 
 class CEP47Client {
   private contractHash: string;
   private contractPackageHash: string;
-  private namedKeys: { balances: string, metadata: string, ownedTokens: string, owners: string, paused: string }
+  private namedKeys: {
+    balances: string;
+    metadata: string;
+    ownedTokens: string;
+    owners: string;
+    paused: string;
+  };
+  private isListening = false;
+  private pendingDeploys: IPendingDeploy[] = [];
 
   constructor(
     private nodeAddress: string,
@@ -76,11 +84,17 @@ class CEP47Client {
       "contract-package-wasm",
       ""
     );
-    const LIST_OF_NAMED_KEYS = ['balances', 'metadata', 'owned_tokens', 'owners', 'paused'];
+    const LIST_OF_NAMED_KEYS = [
+      "balances",
+      "metadata",
+      "owned_tokens",
+      "owners",
+      "paused",
+    ];
     // @ts-ignore
     this.namedKeys = namedKeys.reduce((acc, val) => {
       if (LIST_OF_NAMED_KEYS.includes(val.name)) {
-        return { ...acc, [utils.camelCased(val.name)]: val.key};
+        return { ...acc, [utils.camelCased(val.name)]: val.key };
       }
       return acc;
     }, {});
@@ -122,15 +136,25 @@ class CEP47Client {
 
   public async balanceOf(account: CLPublicKey) {
     const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
-    const result = await utils.contractDictionaryGetter(this.nodeAddress, accountHash, this.namedKeys.balances);
+    const result = await utils.contractDictionaryGetter(
+      this.nodeAddress,
+      accountHash,
+      this.namedKeys.balances
+    );
     const maybeValue = result.value().unwrap();
     return maybeValue.value().toString();
   }
 
   public async getOwnerOf(tokenId: string) {
-    const result = await utils.contractDictionaryGetter(this.nodeAddress, tokenId, this.namedKeys.owners);
+    const result = await utils.contractDictionaryGetter(
+      this.nodeAddress,
+      tokenId,
+      this.namedKeys.owners
+    );
     const maybeValue = result.value().unwrap();
-    return `account-hash-${Buffer.from(maybeValue.value().value()).toString("hex")}`;
+    return `account-hash-${Buffer.from(maybeValue.value().value()).toString(
+      "hex"
+    )}`;
   }
 
   public async totalSupply() {
@@ -142,9 +166,12 @@ class CEP47Client {
     return result.value();
   }
 
-  // TODO: Refactor to use dictionary
   public async getTokenMeta(tokenId: string) {
-    const result = await utils.contractDictionaryGetter(this.nodeAddress, tokenId, this.namedKeys.metadata);
+    const result = await utils.contractDictionaryGetter(
+      this.nodeAddress,
+      tokenId,
+      this.namedKeys.metadata
+    );
     const maybeValue = result.value().unwrap();
     const map: Array<[CLValue, CLValue]> = maybeValue.value();
 
@@ -211,7 +238,11 @@ class CEP47Client {
 
   public async getTokensOf(account: CLPublicKey) {
     const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
-    const result = await utils.contractDictionaryGetter(this.nodeAddress, accountHash, this.namedKeys.ownedTokens);
+    const result = await utils.contractDictionaryGetter(
+      this.nodeAddress,
+      accountHash,
+      this.namedKeys.ownedTokens
+    );
     const maybeValue = result.value().unwrap();
     return maybeValue.value();
   }
@@ -244,6 +275,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.MintOne, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -271,8 +303,6 @@ class CEP47Client {
       token_meta: toCLMap(meta),
     });
 
-    console.log(runtimeArgs);
-
     const deployHash = await contractCall({
       chainName: this.chainName,
       contractHash: this.contractHash,
@@ -284,6 +314,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.MintOne, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -328,6 +359,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.MintOne, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -356,6 +388,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.MetadataUpdate, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -384,6 +417,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.BurnOne, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -413,6 +447,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.BurnOne, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -441,6 +476,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.TransferToken, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -471,6 +507,7 @@ class CEP47Client {
 
     if (deployHash !== null) {
       return deployHash;
+      this.addPendingDeploy(CEP47Events.TransferToken, deployHash);
     } else {
       throw Error("Invalid Deploy");
     }
@@ -496,6 +533,7 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
+      this.addPendingDeploy(CEP47Events.TransferToken, deployHash);
       return deployHash;
     } else {
       throw Error("Invalid Deploy");
@@ -504,48 +542,89 @@ class CEP47Client {
 
   public onEvent(
     eventNames: CEP47Events[],
-    callback: (eventName: CEP47Events, result: any) => void
+    callback: (
+      eventName: CEP47Events,
+      deployStatus: { deployHash: string; success: boolean, error: string | null },
+      result: any | null
+    ) => void
   ): any {
     if (!this.eventStreamAddress) {
       throw Error("Please set eventStreamAddress before!");
     }
+    if (this.isListening) {
+      throw Error(
+        "Only one event listener can be create at a time. Remove the previous one and start new."
+      );
+    }
     const es = new EventStream(this.eventStreamAddress);
+    this.isListening = true;
 
     es.subscribe(EventName.DeployProcessed, (value: any) => {
-      // TODO: add errors handling
-      if (!value.body.DeployProcessed.execution_result.Success) return;
-      const { transforms } =
-        value.body.DeployProcessed.execution_result.Success.effect;
+      const deployHash = value.body.DeployProcessed.deploy_hash;
 
-      const cep47Events = transforms.reduce((acc: any, val: any) => {
-        if (
-          val.transform.hasOwnProperty("WriteCLValue") &&
-          typeof val.transform.WriteCLValue.parsed === "object" &&
-          val.transform.WriteCLValue.parsed !== null
-        ) {
-          const maybeCLValue = CLValueParsers.fromJSON(
-            val.transform.WriteCLValue
-          );
-          const clValue = maybeCLValue.unwrap();
-          if (clValue && clValue instanceof CLMap) {
-            const hash = clValue.get(
-              CLValueBuilder.string("contract_package_hash")
+      const pendingDeploy = this.pendingDeploys.find(
+        (pending) => pending.deployHash === deployHash
+      );
+
+      if (!pendingDeploy) {
+        return;
+      }
+
+      if (
+        !value.body.DeployProcessed.execution_result.Success &&
+        value.body.DeployProcessed.execution_result.Failure
+      ) {
+        callback(
+          pendingDeploy.deployType,
+          {
+            deployHash,
+            error:
+              value.body.DeployProcessed.execution_result.Failure.effect
+                .error_message,
+            success: false,
+          },
+          null
+        );
+      } else {
+        const { transforms } =
+          value.body.DeployProcessed.execution_result.Success.effect;
+
+        const cep47Events = transforms.reduce((acc: any, val: any) => {
+          if (
+            val.transform.hasOwnProperty("WriteCLValue") &&
+            typeof val.transform.WriteCLValue.parsed === "object" &&
+            val.transform.WriteCLValue.parsed !== null
+          ) {
+            const maybeCLValue = CLValueParsers.fromJSON(
+              val.transform.WriteCLValue
             );
-            const event = clValue.get(CLValueBuilder.string("event_type"));
-            if (
-              hash &&
-              hash.value() === this.contractPackageHash &&
-              event &&
-              eventNames.includes(event.value())
-            ) {
-              acc = [...acc, { name: event.value(), clValue }];
+            const clValue = maybeCLValue.unwrap();
+            if (clValue && clValue instanceof CLMap) {
+              const hash = clValue.get(
+                CLValueBuilder.string("contract_package_hash")
+              );
+              const event = clValue.get(CLValueBuilder.string("event_type"));
+              if (
+                hash &&
+                hash.value() === this.contractPackageHash &&
+                event &&
+                eventNames.includes(event.value())
+              ) {
+                acc = [...acc, { name: event.value(), clValue }];
+              }
             }
           }
-        }
-        return acc;
-      }, []);
+          return acc;
+        }, []);
 
-      cep47Events.forEach((d: any) => callback(d.name, d.clValue));
+        cep47Events.forEach((d: any) =>
+          callback(d.name, { deployHash, error: null, success: true }, d.clValue)
+        );
+      }
+
+      this.pendingDeploys = this.pendingDeploys.filter(
+        (pending) => pending.deployHash !== deployHash
+      );
     });
     es.start();
 
@@ -553,8 +632,14 @@ class CEP47Client {
       stopListening: () => {
         es.unsubscribe(EventName.DeployProcessed);
         es.stop();
+        this.isListening = false;
+        this.pendingDeploys = [];
       },
     };
+  }
+
+  private addPendingDeploy(deployType: CEP47Events, deployHash: string) {
+    this.pendingDeploys = [...this.pendingDeploys, { deployHash, deployType }];
   }
 }
 
