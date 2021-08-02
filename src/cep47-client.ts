@@ -622,11 +622,9 @@ class CEP47Client {
         );
       }
 
-      console.log("!", deployHash, this.pendingDeploys);
       this.pendingDeploys = this.pendingDeploys.filter(
         (pending) => pending.deployHash !== deployHash
       );
-      console.log("!!", deployHash, this.pendingDeploys);
     });
     es.start();
 
