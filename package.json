@@ -23,7 +23,7 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "casper-js-sdk": "2.3.0",
+    "casper-js-sdk": "2.4.0",
     "ts-results": "^3.3.0"
   }
 }
