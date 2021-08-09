@@ -45,7 +45,13 @@ const test = async () => {
   );
 
   const installDeployHash = await cep47.install(
-        KEYS, TOKEN_NAME!, TOKEN_SYMBOL!, TOKEN_META!, INSTALL_PAYMENT_AMOUNT!, WASM_PATH!);
+    KEYS,
+    TOKEN_NAME!,
+    TOKEN_SYMBOL!,
+    TOKEN_META!,
+    INSTALL_PAYMENT_AMOUNT!,
+    WASM_PATH!
+  );
 
   console.log(`... Contract installation deployHash: ${installDeployHash}`);
 
@@ -58,7 +64,10 @@ const test = async () => {
   console.log(`... Account Info: `);
   console.log(JSON.stringify(accountInfo, null, 2));
 
-  const contractHash = await utils.getAccountNamedKeyValue(accountInfo, `${TOKEN_NAME!}_contract`);
+  const contractHash = await utils.getAccountNamedKeyValue(
+    accountInfo,
+    `${TOKEN_NAME!}_contract`
+  );
 
   console.log(`... Contract Hash: ${contractHash}`);
 };

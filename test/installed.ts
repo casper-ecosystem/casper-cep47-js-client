@@ -68,6 +68,7 @@ const test = async () => {
 
   await sleep(5 * 1000);
 
+  console.log("!");
   let accountInfo = await utils.getAccountInfo(NODE_ADDRESS!, KEYS.publicKey);
 
   console.log(`... Account Info: `);
@@ -135,7 +136,7 @@ const test = async () => {
     KEYS,
     KEYS.publicKey,
     new Map([["name", "copied"]]),
-    ["A1", "A2", "A3", "A4", "A5"],
+    ["A6", "A7", "A8", "A9", "A10"],
     5,
     MINT_COPIES_PAYMENT_AMOUNT!
   );

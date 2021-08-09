@@ -506,8 +506,8 @@ class CEP47Client {
     });
 
     if (deployHash !== null) {
-      return deployHash;
       this.addPendingDeploy(CEP47Events.TransferToken, deployHash);
+      return deployHash;
     } else {
       throw Error("Invalid Deploy");
     }
@@ -544,7 +544,11 @@ class CEP47Client {
     eventNames: CEP47Events[],
     callback: (
       eventName: CEP47Events,
-      deployStatus: { deployHash: string; success: boolean, error: string | null },
+      deployStatus: {
+        deployHash: string;
+        success: boolean;
+        error: string | null;
+      },
       result: any | null
     ) => void
   ): any {
@@ -618,13 +622,18 @@ class CEP47Client {
         }, []);
 
         cep47Events.forEach((d: any) =>
-          callback(d.name, { deployHash, error: null, success: true }, d.clValue)
+          callback(
+            d.name,
+            { deployHash, error: null, success: true },
+            d.clValue
+          )
         );
       }
 
       this.pendingDeploys = this.pendingDeploys.filter(
         (pending) => pending.deployHash !== deployHash
       );
+
     });
     es.start();
 
