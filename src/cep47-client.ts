@@ -583,8 +583,7 @@ class CEP47Client {
           {
             deployHash,
             error:
-              value.body.DeployProcessed.execution_result.Failure.effect
-                .error_message,
+              value.body.DeployProcessed.execution_result.Failure.error_message,
             success: false,
           },
           null
@@ -633,7 +632,6 @@ class CEP47Client {
       this.pendingDeploys = this.pendingDeploys.filter(
         (pending) => pending.deployHash !== deployHash
       );
-
     });
     es.start();
 
