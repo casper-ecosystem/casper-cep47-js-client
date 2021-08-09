@@ -68,7 +68,6 @@ const test = async () => {
 
   await sleep(5 * 1000);
 
-  console.log("!");
   let accountInfo = await utils.getAccountInfo(NODE_ADDRESS!, KEYS.publicKey);
 
   console.log(`... Account Info: `);
