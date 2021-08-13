@@ -80,10 +80,7 @@ class CEP47Client {
 
     const { contractPackageHash, namedKeys } = contractData.Contract!;
     this.contractHash = hash;
-    this.contractPackageHash = contractPackageHash.replace(
-      "contract-package-wasm",
-      ""
-    );
+    this.contractPackageHash = contractPackageHash;
     const LIST_OF_NAMED_KEYS = [
       "balances",
       "metadata",
@@ -594,14 +591,14 @@ class CEP47Client {
 
         const cep47Events = transforms.reduce((acc: any, val: any) => {
           if (
+            val.key.startsWith('dictionary') &&
             val.transform.hasOwnProperty("WriteCLValue") &&
-            typeof val.transform.WriteCLValue.parsed === "object" &&
-            val.transform.WriteCLValue.parsed !== null
+            val.transform.WriteCLValue.parsed === null
           ) {
-            const maybeCLValue = CLValueParsers.fromJSON(
-              val.transform.WriteCLValue
-            );
-            const clValue = maybeCLValue.unwrap();
+            const byteArray = Buffer.from(val.transform.WriteCLValue.bytes, 'hex');
+            const maybeCLOption = CLValueParsers.fromBytesWithType(byteArray);
+            const clOption = maybeCLOption.unwrap().value();
+            const clValue = clOption.some ? clOption.unwrap() : null;
             if (clValue && clValue instanceof CLMap) {
               const hash = clValue.get(
                 CLValueBuilder.string("contract_package_hash")
