@@ -1,11 +1,14 @@
 import {
   CasperServiceByJsonRPC,
+  CLURef,
   CLValue,
   CLKey,
   CLAccountHash,
   Keys,
   CLPublicKey,
 } from "casper-js-sdk";
+import { concat } from '@ethersproject/bytes';
+import blake from "blakejs";
 import fs from "fs";
 
 import { RecipientType } from "./types";
@@ -123,3 +126,14 @@ export const contractHashToByteArray = (contractHash: string) =>
 export const sleep = (num: number) => {
   return new Promise((resolve) => setTimeout(resolve, num));
 };
+
+export const getDictionaryKeyHash = (uref: string, id: string) => {
+  const eventsUref = CLURef.fromFormattedStr(uref);
+  const eventsUrefBytes = eventsUref.value().data;
+  const idNum = Uint8Array.from(Buffer.from(id))
+  const finalBytes = concat([eventsUrefBytes, idNum]);
+  const blaked = blake.blake2b(finalBytes, undefined, 32)
+  const str = Buffer.from(blaked).toString("hex"); 
+
+  return `dictionary-${str}`;
+}
