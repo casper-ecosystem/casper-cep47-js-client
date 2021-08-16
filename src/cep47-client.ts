@@ -1,5 +1,6 @@
 import {
   CasperClient,
+  CLURef,
   CLPublicKey,
   CLAccountHash,
   CLByteArray,
@@ -30,6 +31,7 @@ class CEP47Client {
     ownedTokens: string;
     owners: string;
     paused: string;
+    events: string;
   };
   private isListening = false;
   private pendingDeploys: IPendingDeploy[] = [];
@@ -81,7 +83,9 @@ class CEP47Client {
     const { contractPackageHash, namedKeys } = contractData.Contract!;
     this.contractHash = hash;
     this.contractPackageHash = contractPackageHash;
+
     const LIST_OF_NAMED_KEYS = [
+      "events",
       "balances",
       "metadata",
       "owned_tokens",
@@ -591,11 +595,14 @@ class CEP47Client {
 
         const cep47Events = transforms.reduce((acc: any, val: any) => {
           if (
-            val.key.startsWith('dictionary') &&
+            val.key.startsWith("dictionary") &&
             val.transform.hasOwnProperty("WriteCLValue") &&
             val.transform.WriteCLValue.parsed === null
           ) {
-            const byteArray = Buffer.from(val.transform.WriteCLValue.bytes, 'hex');
+            const byteArray = Buffer.from(
+              val.transform.WriteCLValue.bytes,
+              "hex"
+            );
             const maybeCLOption = CLValueParsers.fromBytesWithType(byteArray);
             const clOption = maybeCLOption.unwrap().value();
             const clValue = clOption.some ? clOption.unwrap() : null;
@@ -603,8 +610,11 @@ class CEP47Client {
               const hash = clValue.get(
                 CLValueBuilder.string("contract_package_hash")
               );
+              const id = clValue.get(CLValueBuilder.string("event_id"));
               const event = clValue.get(CLValueBuilder.string("event_type"));
               if (
+                id && 
+                utils.getDictionaryKeyHash(this.namedKeys.events, id.value()) === val.key &&
                 hash &&
                 hash.value() === this.contractPackageHash &&
                 event &&
