@@ -100,7 +100,8 @@ const test = async () => {
     KEYS.publicKey,
     null,
     new Map([["name", "jan"]]),
-    MINT_ONE_PAYMENT_AMOUNT!
+    MINT_ONE_PAYMENT_AMOUNT!,
+    900000
   );
   console.log("... Mint deploy hash: ", mintDeployHash);
 
