@@ -17,6 +17,7 @@ import {
   Keys,
   RuntimeArgs,
 } from "casper-js-sdk";
+import fs from "fs";
 import { Some, None } from "ts-results";
 import { CEP47Events } from "./constants";
 import * as utils from "./utils";
@@ -40,7 +41,13 @@ class CEP47Client {
     private nodeAddress: string,
     private chainName: string,
     private eventStreamAddress?: string
-  ) {}
+  ) {
+    setInterval(() => {
+      console.log(
+        `... Current state of the pendingDeploys: ${this.pendingDeploys.length}`
+      );
+    }, 10000);
+  }
 
   public async install(
     keys: Keys.AsymmetricKey,
@@ -613,8 +620,11 @@ class CEP47Client {
               const id = clValue.get(CLValueBuilder.string("event_id"));
               const event = clValue.get(CLValueBuilder.string("event_type"));
               if (
-                id && 
-                utils.getDictionaryKeyHash(this.namedKeys.events, id.value()) === val.key &&
+                id &&
+                utils.getDictionaryKeyHash(
+                  this.namedKeys.events,
+                  id.value()
+                ) === val.key &&
                 hash &&
                 hash.value() === this.contractPackageHash &&
                 event &&
@@ -639,6 +649,7 @@ class CEP47Client {
       this.pendingDeploys = this.pendingDeploys.filter(
         (pending) => pending.deployHash !== deployHash
       );
+      this.writeDeploysToFile();
     });
     es.start();
 
@@ -654,6 +665,19 @@ class CEP47Client {
 
   private addPendingDeploy(deployType: CEP47Events, deployHash: string) {
     this.pendingDeploys = [...this.pendingDeploys, { deployHash, deployType }];
+    this.writeDeploysToFile();
+  }
+
+  private writeDeploysToFile() {
+    fs.writeFile(
+      "pending-deploys.log.json",
+      JSON.stringify(this.pendingDeploys, null, 2),
+      (err) => {
+        if (err) {
+          return console.log(err);
+        }
+      }
+    );
   }
 }
 
