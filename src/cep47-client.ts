@@ -17,7 +17,7 @@ import {
   RuntimeArgs,
 } from "casper-js-sdk";
 import { Some, None } from "ts-results";
-import { CEP47Events } from "./constants";
+import { CEP47Events, DEFAULT_TTL } from "./constants";
 import * as utils from "./utils";
 import { RecipientType, IPendingDeploy } from "./types";
 
@@ -184,8 +184,7 @@ class CEP47Client {
     return jsMap;
   }
 
-  // TODO: ???
-  public async pause(keys: Keys.AsymmetricKey, paymentAmount: string) {
+  public async pause(keys: Keys.AsymmetricKey, paymentAmount: string, ttl = DEFAULT_TTL) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
     const deployHash = await contractCall({
@@ -196,6 +195,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -205,8 +205,7 @@ class CEP47Client {
     }
   }
 
-  // TODO: ???
-  public async unpause(keys: Keys.AsymmetricKey, paymentAmount: string) {
+  public async unpause(keys: Keys.AsymmetricKey, paymentAmount: string, ttl = DEFAULT_TTL) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
     const deployHash = await contractCall({
@@ -217,6 +216,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -252,7 +252,8 @@ class CEP47Client {
     recipient: RecipientType,
     id: string | null,
     meta: Map<string, string>,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const tokenId = id
       ? CLValueBuilder.option(Some(CLValueBuilder.string(id)))
@@ -272,6 +273,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -288,7 +290,8 @@ class CEP47Client {
     meta: Map<string, string>,
     ids: string[] | null,
     count: number,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const tokenIds = ids
       ? CLValueBuilder.option(
@@ -311,6 +314,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -326,7 +330,8 @@ class CEP47Client {
     recipient: RecipientType,
     meta: Array<Map<string, string>>,
     ids: string[] | null,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     if (ids && ids.length !== meta.length) {
       throw new Error(
@@ -356,6 +361,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -370,7 +376,8 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     tokenId: string,
     meta: Map<string, string>,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
       token_id: CLValueBuilder.string(tokenId),
@@ -385,6 +392,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -399,7 +407,8 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     owner: RecipientType,
     tokenId: string,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
       owner: utils.createRecipientAddress(owner),
@@ -414,6 +423,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -428,7 +438,8 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     owner: RecipientType,
     tokenIds: string[],
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const clTokenIds = tokenIds.map(CLValueBuilder.string);
     const runtimeArgs = RuntimeArgs.fromMap({
@@ -444,6 +455,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -458,7 +470,8 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     recipient: RecipientType,
     tokenId: string,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
       recipient: utils.createRecipientAddress(recipient),
@@ -473,6 +486,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -487,7 +501,8 @@ class CEP47Client {
     keys: Keys.AsymmetricKey,
     recipient: RecipientType,
     tokenIds: string[],
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const clTokenIds = tokenIds.map(CLValueBuilder.string);
     const runtimeArgs = RuntimeArgs.fromMap({
@@ -503,6 +518,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -516,7 +532,8 @@ class CEP47Client {
   public async transferAllTokens(
     keys: Keys.AsymmetricKey,
     recipient: RecipientType,
-    paymentAmount: string
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
   ) {
     const runtimeArgs = RuntimeArgs.fromMap({
       recipient: utils.createRecipientAddress(recipient),
@@ -530,6 +547,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
+      ttl
     });
 
     if (deployHash !== null) {
@@ -697,6 +715,7 @@ interface IContractCallParams {
   runtimeArgs: RuntimeArgs;
   paymentAmount: string;
   contractHash: string;
+  ttl: number;
 }
 
 const contractCall = async ({
@@ -707,12 +726,13 @@ const contractCall = async ({
   entryPoint,
   runtimeArgs,
   paymentAmount,
+  ttl
 }: IContractCallParams) => {
   const client = new CasperClient(nodeAddress);
   const contractHashAsByteArray = utils.contractHashToByteArray(contractHash);
 
   let deploy = DeployUtil.makeDeploy(
-    new DeployUtil.DeployParams(keys.publicKey, chainName),
+    new DeployUtil.DeployParams(keys.publicKey, chainName, 1, ttl),
     DeployUtil.ExecutableDeployItem.newStoredContractByHash(
       contractHashAsByteArray,
       entryPoint,
