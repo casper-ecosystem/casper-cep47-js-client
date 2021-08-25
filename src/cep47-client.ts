@@ -22,8 +22,8 @@ import * as utils from "./utils";
 import { RecipientType, IPendingDeploy } from "./types";
 
 class CEP47Client {
-  private contractHash: string;
-  private contractPackageHash: string;
+  public contractHash: string;
+  public contractPackageHash: string;
   private namedKeys: {
     balances: string;
     metadata: string;
@@ -184,7 +184,11 @@ class CEP47Client {
     return jsMap;
   }
 
-  public async pause(keys: Keys.AsymmetricKey, paymentAmount: string, ttl = DEFAULT_TTL) {
+  public async pause(
+    keys: Keys.AsymmetricKey,
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
+  ) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
     const deployHash = await contractCall({
@@ -195,7 +199,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -205,7 +209,11 @@ class CEP47Client {
     }
   }
 
-  public async unpause(keys: Keys.AsymmetricKey, paymentAmount: string, ttl = DEFAULT_TTL) {
+  public async unpause(
+    keys: Keys.AsymmetricKey,
+    paymentAmount: string,
+    ttl = DEFAULT_TTL
+  ) {
     const runtimeArgs = RuntimeArgs.fromMap({});
 
     const deployHash = await contractCall({
@@ -216,7 +224,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -273,7 +281,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -314,7 +322,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -361,7 +369,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       keys: keys,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -392,7 +400,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -423,7 +431,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -455,7 +463,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -486,7 +494,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -518,7 +526,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -547,7 +555,7 @@ class CEP47Client {
       nodeAddress: this.nodeAddress,
       paymentAmount,
       runtimeArgs,
-      ttl
+      ttl,
     });
 
     if (deployHash !== null) {
@@ -557,6 +565,15 @@ class CEP47Client {
       throw Error("Invalid Deploy");
     }
   }
+
+  public eventHandler(
+    deployHashes: string[],
+    callback: (deployStatus: {
+      deployHash: string;
+      success: boolean;
+      error: string | null;
+    }) => void
+  ) {}
 
   public onEvent(
     eventNames: CEP47Events[],
@@ -592,53 +609,20 @@ class CEP47Client {
         return;
       }
 
-      if (
-        !value.body.DeployProcessed.execution_result.Success &&
-        value.body.DeployProcessed.execution_result.Failure
-      ) {
+      const parsedEvent = utils.parseEvent({ contractPackageHash: this.contractPackageHash, eventNames }, value);
+
+      if (parsedEvent.error !== null) {
         callback(
           pendingDeploy.deployType,
           {
             deployHash,
-            error:
-              value.body.DeployProcessed.execution_result.Failure.error_message,
+            error: parsedEvent.error,
             success: false,
           },
           null
         );
       } else {
-        const { transforms } =
-          value.body.DeployProcessed.execution_result.Success.effect;
-
-        const cep47Events = transforms.reduce((acc: any, val: any) => {
-          if (
-            val.transform.hasOwnProperty("WriteCLValue") &&
-            typeof val.transform.WriteCLValue.parsed === "object" &&
-            val.transform.WriteCLValue.parsed !== null
-          ) {
-            const maybeCLValue = CLValueParsers.fromJSON(
-              val.transform.WriteCLValue
-            );
-            const clValue = maybeCLValue.unwrap();
-            if (clValue && clValue instanceof CLMap) {
-              const hash = clValue.get(
-                CLValueBuilder.string("contract_package_hash")
-              );
-              const event = clValue.get(CLValueBuilder.string("event_type"));
-              if (
-                hash &&
-                hash.value() === this.contractPackageHash &&
-                event &&
-                eventNames.includes(event.value())
-              ) {
-                acc = [...acc, { name: event.value(), clValue }];
-              }
-            }
-          }
-          return acc;
-        }, []);
-
-        cep47Events.forEach((d: any) =>
+        parsedEvent.events.forEach((d: any) =>
           callback(
             d.name,
             { deployHash, error: null, success: true },
@@ -651,6 +635,7 @@ class CEP47Client {
         (pending) => pending.deployHash !== deployHash
       );
     });
+
     es.start();
 
     return {
@@ -726,7 +711,7 @@ const contractCall = async ({
   entryPoint,
   runtimeArgs,
   paymentAmount,
-  ttl
+  ttl,
 }: IContractCallParams) => {
   const client = new CasperClient(nodeAddress);
   const contractHashAsByteArray = utils.contractHashToByteArray(contractHash);

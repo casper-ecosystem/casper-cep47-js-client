@@ -1,6 +1,9 @@
 import {
   CasperServiceByJsonRPC,
   CLValue,
+  CLMap,
+  CLValueParsers,
+  CLValueBuilder,
   CLKey,
   CLAccountHash,
   Keys,
@@ -9,6 +12,7 @@ import {
 import fs from "fs";
 
 import { RecipientType } from "./types";
+import { CEP47Events } from "./constants";
 
 export const camelCased = (myString: string) =>
   myString.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -97,7 +101,7 @@ export const getContractData = async (
 export const contractDictionaryGetter = async (
   nodeAddress: string,
   dictionaryItemKey: string,
-  seedUref: string,
+  seedUref: string
 ) => {
   const stateRootHash = await getStateRootHash(nodeAddress);
 
@@ -116,10 +120,57 @@ export const contractDictionaryGetter = async (
   }
 };
 
-
 export const contractHashToByteArray = (contractHash: string) =>
   Uint8Array.from(Buffer.from(contractHash, "hex"));
 
 export const sleep = (num: number) => {
   return new Promise((resolve) => setTimeout(resolve, num));
+};
+
+export const parseEvent = (
+  {
+    contractPackageHash,
+    eventNames,
+  }: { contractPackageHash: string; eventNames: CEP47Events[] },
+  value: any
+) => {
+  if (value.body.DeployProcessed.execution_result.Failure) {
+    return {
+      error: value.body.DeployProcessed.execution_result.Failure.error_message,
+      success: false,
+    };
+  } else {
+    const { transforms } =
+      value.body.DeployProcessed.execution_result.Success.effect;
+
+    const cep47Events = transforms.reduce((acc: any, val: any) => {
+      if (
+        val.transform.hasOwnProperty("WriteCLValue") &&
+        typeof val.transform.WriteCLValue.parsed === "object" &&
+        val.transform.WriteCLValue.parsed !== null
+      ) {
+        const maybeCLValue = CLValueParsers.fromJSON(
+          val.transform.WriteCLValue
+        );
+        const clValue = maybeCLValue.unwrap();
+        if (clValue && clValue instanceof CLMap) {
+          const hash = clValue.get(
+            CLValueBuilder.string("contract_package_hash")
+          );
+          const event = clValue.get(CLValueBuilder.string("event_type"));
+          if (
+            hash &&
+            hash.value() === contractPackageHash &&
+            event &&
+            eventNames.includes(event.value())
+          ) {
+            acc = [...acc, { name: event.value(), clValue }];
+          }
+        }
+      }
+      return acc;
+    }, []);
+
+    return { error: null, success: !!cep47Events.length, events: cep47Events };
+  }
 };
