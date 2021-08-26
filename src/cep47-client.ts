@@ -599,6 +599,7 @@ class CEP47Client {
     this.isListening = true;
 
     es.subscribe(EventName.DeployProcessed, (value: any) => {
+      console.log('val', value);
       const deployHash = value.body.DeployProcessed.deploy_hash;
 
       const pendingDeploy = this.pendingDeploys.find(
@@ -622,7 +623,7 @@ class CEP47Client {
           null
         );
       } else {
-        parsedEvent.events.forEach((d: any) =>
+        parsedEvent.data.forEach((d: any) =>
           callback(
             d.name,
             { deployHash, error: null, success: true },

@@ -171,6 +171,6 @@ export const parseEvent = (
       return acc;
     }, []);
 
-    return { error: null, success: !!cep47Events.length, events: cep47Events };
+    return { error: null, success: !!cep47Events.length, data: cep47Events };
   }
 };

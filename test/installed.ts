@@ -34,8 +34,6 @@ const {
   MINT_MANY_META_COUNT,
 } = process.env;
 
-const TOKEN_META = new Map(parseTokenMeta(process.env.TOKEN_META!));
-
 const KEYS = Keys.Ed25519.parseKeyFiles(
   `${MASTER_KEY_PAIR_PATH}/public_key.pem`,
   `${MASTER_KEY_PAIR_PATH}/secret_key.pem`
