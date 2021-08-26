@@ -1,4 +1,4 @@
-// This is just a mock of persistance of deploys - it can be replaced with db controller or any other solution.
+// This is just a mock of persistance for deploys - it can be replaced with db controller or any other solution.
 class PendingDeploys {
   public pendingDeploys: string[] = [];
 
