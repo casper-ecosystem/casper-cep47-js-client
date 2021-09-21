@@ -218,7 +218,7 @@ const test = async () => {
   console.log(`... Total supply: ${totalSupply}`);
 
   // tokensOf = await cep47.getTokensOf(KEYS.publicKey);
-  let listOfTokensToBurn = tokensOf.map((t: any) => t.data).slice(0, 3);
+  let listOfTokensToBurn = tokensOf.map((t: any) => t).slice(0, 3);
 
   const burnManyTokensDeployHash = await cep47.burnMany(
     KEYS,
@@ -237,7 +237,7 @@ const test = async () => {
 
   // tokensOf = await cep47.getTokensOf(KEYS.publicKey);
 
-  const tokensToTransfer = tokensOf.map((t: any) => t.data).slice(0, 2);
+  const tokensToTransfer = tokensOf.map((t: any) => t).slice(0, 2);
 
   const transferManyDeployHash = await cep47.transferManyTokens(
     KEYS,
