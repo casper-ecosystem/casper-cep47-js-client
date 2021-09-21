@@ -29,6 +29,7 @@ class CEP47Client {
     metadata: string;
     ownedTokens: string;
     owners: string;
+    issuers: string;
     paused: string;
   };
   private isListening = false;
@@ -87,8 +88,9 @@ class CEP47Client {
     const LIST_OF_NAMED_KEYS = [
       "balances",
       "metadata",
-      "owned_tokens",
+      // "owned_tokens",
       "owners",
+      "issuers",
       "paused",
     ];
     // @ts-ignore
@@ -150,6 +152,18 @@ class CEP47Client {
       this.nodeAddress,
       tokenId,
       this.namedKeys.owners
+    );
+    const maybeValue = result.value().unwrap();
+    return `account-hash-${Buffer.from(maybeValue.value().value()).toString(
+      "hex"
+    )}`;
+  }
+
+  public async getIssuerOf(tokenId: string) {
+    const result = await utils.contractDictionaryGetter(
+      this.nodeAddress,
+      tokenId,
+      this.namedKeys.issuers
     );
     const maybeValue = result.value().unwrap();
     return `account-hash-${Buffer.from(maybeValue.value().value()).toString(
@@ -236,16 +250,18 @@ class CEP47Client {
     return result.value();
   }
 
-  public async getTokensOf(account: CLPublicKey) {
-    const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
-    const result = await utils.contractDictionaryGetter(
-      this.nodeAddress,
-      accountHash,
-      this.namedKeys.ownedTokens
-    );
-    const maybeValue = result.value().unwrap();
-    return maybeValue.value();
-  }
+  // public async getTokensOf(account: CLPublicKey) {
+  //   const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
+  //   console.log("HASH", accountHash);
+  //   console.log("HASH", this.namedKeys);
+  //   const result = await utils.contractDictionaryGetter(
+  //     this.nodeAddress,
+  //     accountHash,
+  //     this.namedKeys.ownedTokens
+  //   );
+  //   const maybeValue = result.value().unwrap();
+  //   return maybeValue.value();
+  // }
 
   public async mintOne(
     keys: Keys.AsymmetricKey,
