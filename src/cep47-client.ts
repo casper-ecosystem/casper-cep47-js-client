@@ -21,13 +21,17 @@ import { CEP47Events, DEFAULT_TTL } from "./constants";
 import * as utils from "./utils";
 import { RecipientType, IPendingDeploy } from "./types";
 
+import { concat } from '@ethersproject/bytes';
+import blake from "blakejs";
+
 class CEP47Client {
   private contractHash: string;
   private contractPackageHash: string;
   private namedKeys: {
     balances: string;
     metadata: string;
-    ownedTokens: string;
+    // ownedTokens: string;
+    ownedTokensByIndex: string;
     owners: string;
     issuers: string;
     paused: string;
@@ -89,6 +93,7 @@ class CEP47Client {
       "balances",
       "metadata",
       // "owned_tokens",
+      "owned_tokens_by_index",
       "owners",
       "issuers",
       "paused",
@@ -250,18 +255,30 @@ class CEP47Client {
     return result.value();
   }
 
-  // public async getTokensOf(account: CLPublicKey) {
-  //   const accountHash = Buffer.from(account.toAccountHash()).toString("hex");
-  //   console.log("HASH", accountHash);
-  //   console.log("HASH", this.namedKeys);
-  //   const result = await utils.contractDictionaryGetter(
-  //     this.nodeAddress,
-  //     accountHash,
-  //     this.namedKeys.ownedTokens
-  //   );
-  //   const maybeValue = result.value().unwrap();
-  //   return maybeValue.value();
-  // }
+  public async getTokensOf(account: CLPublicKey) {
+    const accountKey = utils.createRecipientAddress(account);
+    const accountBytes = CLValueParsers.toBytes(accountKey).unwrap();
+    const balanceOri = await this.balanceOf(account);
+    const balance = parseInt(balanceOri, 10);
+
+    let tokenIds: string[] = [];
+
+    for (let i = 0; i < balance; i++) {
+      const numBytes = CLValueParsers.toBytes(CLValueBuilder.u256(i)).unwrap();
+      const concated = concat([accountBytes, numBytes]);
+      const blaked = blake.blake2b(concated, undefined, 32)
+      const str = Buffer.from(blaked).toString("hex"); 
+      const result = await utils.contractDictionaryGetter(
+        this.nodeAddress,
+        str,
+        this.namedKeys.ownedTokensByIndex
+      );
+      const maybeValue = result.value().unwrap();
+      tokenIds = [...tokenIds, maybeValue.value()];
+    }
+
+    return tokenIds;
+  }
 
   public async mintOne(
     keys: Keys.AsymmetricKey,

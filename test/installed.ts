@@ -48,7 +48,7 @@ const test = async () => {
     EVENT_STREAM_ADDRESS!
   );
 
-  let tokensOf: string[] = [];
+  // let tokensOf: string[] = [];
 
   const listener = cep47.onEvent(
     [
@@ -61,14 +61,6 @@ const test = async () => {
       if (deploy.success) {
         console.log(`Successfull deploy of: ${eventName}, deployHash: ${deploy.deployHash}`);
         console.log(result.value());
-        if (eventName === CEP47Events.MintOne) {
-          const tokenId = result.get(CLValueBuilder.string('token_id')).value();
-          tokensOf = [...tokensOf, tokenId];
-        }
-        if (eventName === CEP47Events.BurnOne) {
-          const tokenId = result.get(CLValueBuilder.string('token_id')).value();
-          tokensOf = tokensOf.filter(id => id !== tokenId);
-        }
       } else {
         console.log(`Failed deploy of ${eventName}, deployHash: ${deploy.deployHash}`);
         console.log(`Error: ${deploy.error}`);
@@ -105,6 +97,9 @@ const test = async () => {
   let totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
 
+  let tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  console.log(`Tokens of faucet account`, tokensOf);
+  
   const mintDeployHash = await cep47.mintOne(
     KEYS,
     KEYS.publicKey,
@@ -121,7 +116,8 @@ const test = async () => {
   totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
 
-  // let tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  console.log(tokensOf);
 
   let issuerOfToken = await cep47.getIssuerOf(tokensOf[0]);
   console.log(`... Issuer of token ${tokensOf[0]} is ${issuerOfToken}`);
@@ -164,11 +160,11 @@ const test = async () => {
   console.log(`... Balance of account ${KEYS.publicKey.toAccountHashStr()}`);
   console.log(`... Balance: ${balance}`);
 
-  // tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  tokensOf = await cep47.getTokensOf(KEYS.publicKey);
   console.log(`... Tokens of  ${KEYS.publicKey.toAccountHashStr()}`);
   console.log(`... Tokens: ${JSON.stringify(tokensOf, null, 2)}`);
 
-  const tokenOneId = tokensOf[0] //.data;
+  const tokenOneId = tokensOf[0]; 
 
   let ownerOfTokenOne = await cep47.getOwnerOf(tokenOneId);
   console.log(`... Owner of token: ${tokenOneId}`);
@@ -217,7 +213,7 @@ const test = async () => {
   totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
 
-  // tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  tokensOf = await cep47.getTokensOf(KEYS.publicKey);
   let listOfTokensToBurn = tokensOf.map((t: any) => t).slice(0, 3);
 
   const burnManyTokensDeployHash = await cep47.burnMany(
@@ -235,7 +231,7 @@ const test = async () => {
 
   const receiverAccount = CLPublicKey.fromHex(RECEIVER_ACCOUNT_ONE!);
 
-  // tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  tokensOf = await cep47.getTokensOf(KEYS.publicKey);
 
   const tokensToTransfer = tokensOf.map((t: any) => t).slice(0, 2);
 
