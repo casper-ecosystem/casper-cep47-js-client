@@ -1,6 +1,6 @@
 {
   "name": "casper-cep47-js-client",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "typescript": "^3.3.3"
   },
   "dependencies": {
-    "casper-js-sdk": "2.4.1",
+    "casper-js-sdk": "2.5.2",
     "ts-results": "^3.3.0"
   }
 }
