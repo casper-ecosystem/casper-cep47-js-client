@@ -97,9 +97,6 @@ const test = async () => {
   let totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
 
-  let tokensOf = await cep47.getTokensOf(KEYS.publicKey);
-  console.log(`Tokens of faucet account`, tokensOf);
-  
   const mintDeployHash = await cep47.mintOne(
     KEYS,
     KEYS.publicKey,
@@ -112,6 +109,9 @@ const test = async () => {
 
   await getDeploy(NODE_ADDRESS!, mintDeployHash);
   console.log("... Token minted successfully");
+
+  let tokensOf = await cep47.getTokensOf(KEYS.publicKey);
+  console.log(`Tokens of faucet account`, tokensOf);
 
   totalSupply = await cep47.totalSupply();
   console.log(`... Total supply: ${totalSupply}`);
